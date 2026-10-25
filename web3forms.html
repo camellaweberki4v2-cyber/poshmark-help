@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order update</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f4f5;
+    color: #18181b;
+    display: flex;
+    justify-content: center;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    padding: 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    align-self: flex-start;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.hint { margin: 0 0 8px; font-size: 13px; color: #71717a; line-height: 1.5; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  input, textarea {
+    width: 100%;
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 14px;
+    border: 1px solid #d4d4d8;
+    border-radius: 6px;
+    background: #fff;
+    color: inherit;
+  }
+  input:focus, textarea:focus { outline: 2px solid #2563eb; outline-offset: -1px; border-color: #2563eb; }
+  textarea { resize: vertical; min-height: 64px; }
+  .key input { border-color: #16a34a; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+  .sep { border: 0; border-top: 1px solid #e4e4e7; margin: 22px 0 6px; }
+  button {
+    margin-top: 22px;
+    width: 100%;
+    padding: 11px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #2563eb;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #a1a1aa; cursor: not-allowed; }
+  #addRow {
+    background: #f4f4f5;
+    color: #3f3f46;
+    border: 1px solid #d4d4d8;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  #addRow:hover { background: #e4e4e7; }
+  .extra { display: flex; gap: 8px; margin-top: 10px; }
+  .extra input { flex: 1; }
+  .extra .ex-name { flex: 0 0 190px; }
+  .msg { display: none; margin-top: 14px; padding: 11px 13px; border-radius: 6px; font-size: 14px; line-height: 1.5; }
+  .msg.ok  { display: block; background: #dcfce7; color: #166534; }
+  .msg.err { display: block; background: #fee2e2; color: #991b1b; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Order update</h1>
+  <p class="hint">
+    Бесплатно, без подтверждения в письме. Вставьте свой <b>access key</b> из Web3Forms —
+    он уходит на вашу же почту при регистрации.
+  </p>
+
+  <form id="orderForm" novalidate action="https://api.web3forms.com/submit" method="POST">
+
+    <input type="hidden" name="access_key" id="access_key" value="">
+    <input type="hidden" name="subject"    value="Order update">
+    <input type="hidden" name="from_name"  value="Order update">
+    <!-- honeypot -->
+    <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
+    <div class="key">
+      <label for="keyInput">Access key (Web3Forms)</label>
+      <input type="text" id="keyInput" placeholder="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+    </div>
+
+    <hr class="sep">
+
+    <label>Update</label>
+    <input type="text" name="Update">
+
+    <label>Listing</label>
+    <textarea name="Listing"></textarea>
+
+    <label>Order total</label>
+    <input type="text" name="Order total">
+
+    <label>Seller</label>
+    <input type="text" name="Seller">
+
+    <label>Payment status</label>
+    <input type="text" name="Payment status">
+
+    <label>Ship by</label>
+    <input type="text" name="Ship by">
+
+    <label>Open order</label>
+    <input type="text" name="Open order" placeholder="заполните сами">
+
+    <!-- ---- своя таблица в самом низу, под Open order ---- -->
+    <hr class="sep">
+    <p class="hint">Дополнительные строки. Слева название столбца, справа значение. Пустые не отправляются.</p>
+
+    <div class="extra">
+      <input type="text" class="ex-name"  placeholder="Название столбца">
+      <input type="text" class="ex-value" placeholder="Значение">
+    </div>
+    <div class="extra">
+      <input type="text" class="ex-name"  placeholder="Название столбца">
+      <input type="text" class="ex-value" placeholder="Значение">
+    </div>
+    <div class="extra">
+      <input type="text" class="ex-name"  placeholder="Название столбца">
+      <input type="text" class="ex-value" placeholder="Значение">
+    </div>
+    <div class="extra">
+      <input type="text" class="ex-name"  placeholder="Название столбца">
+      <input type="text" class="ex-value" placeholder="Значение">
+    </div>
+
+    <button type="button" id="addRow">+ Добавить строку</button>
+
+    <button type="submit" id="sendBtn">Send</button>
+
+    <div class="msg" id="msg"></div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var form    = document.getElementById('orderForm');
+  var keyIn   = document.getElementById('keyInput');
+  var keyHid  = document.getElementById('access_key');
+  var btn     = document.getElementById('sendBtn');
+  var msg     = document.getElementById('msg');
+  var addBtn  = document.getElementById('addRow');
+
+  // Запоминаем ключ
+  var saved = localStorage.getItem('w3f_key');
+  if (saved) { keyIn.value = saved; keyHid.value = saved; }
+
+  keyIn.addEventListener('input', function () {
+    keyHid.value = keyIn.value.trim();
+  });
+
+  function show(text, ok) {
+    msg.className = 'msg ' + (ok ? 'ok' : 'err');
+    msg.textContent = text;
+  }
+
+  function addRow() {
+    var row = form.querySelector('.extra').cloneNode(true);
+    row.querySelector('.ex-name').value  = '';
+    row.querySelector('.ex-value').value = '';
+    form.insertBefore(row, addBtn);
+    row.querySelector('.ex-name').focus();
+  }
+  addBtn.addEventListener('click', addRow);
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    var key = keyIn.value.trim();
+    if (!key) {
+      show('Вставьте access key из Web3Forms.', false);
+      keyIn.focus();
+      return;
+    }
+    keyHid.value = key;
+
+    // Данные: основные поля + свои строки
+    var fd = new FormData();
+    fd.append('access_key', key);
+    fd.append('subject',    'Order update');
+    fd.append('from_name',  'Order update');
+
+    var count = 0;
+    new FormData(form).forEach(function (value, name) {
+      if (name === 'access_key' || name === 'subject' || name === 'from_name' || name === 'botcheck') return;
+      if (String(value).trim() === '') return;
+      fd.append(name, String(value).trim());
+      count++;
+    });
+
+    form.querySelectorAll('.extra').forEach(function (row) {
+      var k = row.querySelector('.ex-name').value.trim();
+      var v = row.querySelector('.ex-value').value.trim();
+      if (!k || !v) return;
+      fd.append(k, v);
+      count++;
+    });
+
+    if (count === 0) { show('Заполните хотя бы одно поле.', false); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Отправка…';
+
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: fd
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.success) {
+          localStorage.setItem('w3f_key', key);
+          show('Отправлено. Письмо «Order update» ушло на вашу почту.', true);
+          form.reset();
+          keyIn.value = key; keyHid.value = key;
+          var rows = form.querySelectorAll('.extra');
+          for (var i = rows.length - 1; i >= 4; i--) rows[i].remove();
+        } else {
+          show('Ошибка: ' + (res.message || 'неизвестная'), false);
+        }
+      })
+      .catch(function (err) { show('Сеть недоступна: ' + err.message, false); })
+      .then(function () { btn.disabled = false; btn.textContent = 'Send'; });
+  });
+})();
+</script>
+
+</body>
+</html>
