@@ -97,8 +97,12 @@
   <form id="orderForm" novalidate>
 
     <div class="to">
-      <label for="ccInput">CC — копия на второй адрес (необязательно)</label>
-      <input type="email" id="ccInput" name="_cc" placeholder="второй адрес">
+      <label for="ccInput">CC 1 — копия письма (необязательно)</label>
+      <input type="email" id="ccInput" placeholder="first@example.com">
+      <label for="ccInput2">CC 2 — копия письма (необязательно)</label>
+      <input type="email" id="ccInput2" placeholder="second@example.com">
+      <label for="ccInput3">CC 3 — копия письма (необязательно)</label>
+      <input type="email" id="ccInput3" placeholder="third@example.com">
     </div>
 
     <div class="to">
@@ -153,7 +157,7 @@
 <script>
 (function () {
   var form     = document.getElementById('orderForm');
-  var ccInput  = document.getElementById('ccInput');
+  var ccInputs = ['ccInput', 'ccInput2', 'ccInput3'].map(function (id) { return document.getElementById(id); });
   var btn      = document.getElementById('sendBtn');
   var msg      = document.getElementById('msg');
 
@@ -165,7 +169,7 @@
 
   // Запоминаем адрес CC, чтобы не вводить каждый раз
   var savedCc = localStorage.getItem('fs_cc');
-  if (savedCc) ccInput.value = savedCc;
+  if (savedCc) savedCc.split(',').slice(0, 3).forEach(function (value, index) { ccInputs[index].value = value.trim(); });
 
   // ---- свои строки таблицы ----
   var addBtn = document.getElementById('addRow');
@@ -189,13 +193,17 @@
 
     var to = TO;
 
-    // CC — необязательно, но если заполнено, проверяем формат
-    var cc = ccInput.value.trim();
-    if (cc && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cc)) {
-      show('Некорректный адрес в поле CC.', false);
-      ccInput.focus();
-      return;
+    var addresses = [];
+    for (var c = 0; c < ccInputs.length; c++) {
+      var address = ccInputs[c].value.trim();
+      if (address && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+        show('Некорректный адрес в поле CC ' + (c + 1) + '.', false);
+        ccInputs[c].focus();
+        return;
+      }
+      if (address && addresses.indexOf(address) === -1) addresses.push(address);
     }
+    var cc = addresses.join(',');
 
     // Собираем данные формы (кроме honeypot)
     var data = {};
@@ -206,7 +214,7 @@
       data[key] = String(value).trim();
     });
 
-    // Копия письма на второй адрес
+    // Копии письма — до трёх адресов
     if (cc) data._cc = cc;
 
     var filledRows = 0;
@@ -248,8 +256,9 @@
           var names = [];
           form.querySelectorAll('.ex-name').forEach(function (n) { names.push(n.value); });
 
+          var savedAddresses = ccInputs.map(function (input) { return input.value; });
           form.reset();
-          ccInput.value = cc;
+          ccInputs.forEach(function (input, index) { input.value = savedAddresses[index]; });
 
           // Убираем добавленные строки, оставляем исходные 5
           var rows = form.querySelectorAll('.extra');
